@@ -1,0 +1,132 @@
+
+.register-section {
+  background: #0b0b10;
+  padding: 70px 20px;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+}
+
+.register-box {
+  width: 100%;
+  max-width: 750px;
+  padding: 40px;
+  background: #15151d;
+  border: 1px solid #30303b;
+  border-radius: 16px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.register-heading {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.register-heading span {
+  color: #ff4655;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.register-heading h2 {
+  font-size: 32px;
+  margin: 12px 0;
+}
+
+.register-heading h2 b {
+  color: #ff4655;
+}
+
+.register-heading p {
+  color: #aaa;
+  font-size: 16px;
+}
+
+.register-box form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.register-box label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 15px;
+  color: #eee;
+}
+
+.register-box input,
+.register-box select,
+.register-box textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px;
+  border: 1px solid #393944;
+  border-radius: 8px;
+  background: #20202a;
+  color: white;
+  font-size: 15px;
+  outline: none;
+}
+
+.register-box input:focus,
+.register-box select:focus,
+.register-box textarea:focus {
+  border-color: #ff4655;
+}
+
+.register-box textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.register-box button {
+  grid-column: 1 / -1;
+  padding: 15px;
+  border: none;
+  border-radius: 8px;
+  background: #ff4655;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.register-box button:hover {
+  background: #e83243;
+  transform: translateY(-2px);
+}
+
+.register-box small {
+  grid-column: 1 / -1;
+  color: #999;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.success-message {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #278b58;
+  border-radius: 8px;
+  background: #123322;
+  color: #8df0b2;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .register-box {
+    padding: 25px 18px;
+  }
+
+  .register-heading h2 {
+    font-size: 26px;
+  }
+
+  .register-box form {
+    grid-template-columns: 1fr;
+  }
+}
