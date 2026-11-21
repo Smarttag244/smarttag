@@ -34,7 +34,8 @@ function TagPage({ tag }) {
       })
 
     if (error) {
-      setStatus('Could not send request. Please try again.')
+      setStatus('Error: ' + error.message)
+console.error('Contact request error:', error)
     } else {
       setStatus('Contact request sent successfully!')
       setFinder({
