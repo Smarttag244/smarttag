@@ -3,7 +3,7 @@ import { useState } from 'react'
 import './Register.css'
 import { supabase } from './supabase'
 
-function Register({ tagId }) {
+function Register({ tagId, onSuccess }) {
   const [form, setForm] = useState({
     owner: '',
     item: '',
@@ -14,6 +14,7 @@ function Register({ tagId }) {
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [success, setSuccess] = useState(false)
 
   function handleChange(e) {
     setForm({
@@ -24,59 +25,75 @@ function Register({ tagId }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
+
     setLoading(true)
     setMessage('')
+    setSuccess(false)
 
-    // Check logged-in owner
-    const { data: authData, error: authError } =
-      await supabase.auth.getUser()
+    try {
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser()
 
-    if (authError || !authData.user) {
-      setMessage('Please login to your Owner Account before registering an item.')
-      setLoading(false)
-      return
-    }
-
-    const { error } = await supabase
-      .from('smarttags')
-      .insert({
-        id: tagId,
-        owner_id: authData.user.id,
-        owner: form.owner.trim(),
-        item: form.item.trim(),
-        category: form.category,
-        description: form.description.trim() || null
-      })
-
-    if (error) {
-      if (error.code === '23505') {
-        setMessage('This SmartTag is already registered.')
-      } else {
-        setMessage('Registration failed: ' + error.message)
-      }
-
-      setLoading(false)
-      return
-    }
-
-    if (form.phone.trim()) {
-      const { error: contactError } = await supabase
-        .from('tag_contacts')
-        .insert({
-          tag_id: tagId,
-          phone: form.phone.trim()
-        })
-
-      if (contactError) {
-        setMessage('Item saved, but private contact details could not be saved. Please contact admin.')
+      if (authError || !authData.user) {
+        setMessage('Please login to your Owner Account before registering an item.')
         setLoading(false)
         return
       }
+
+      const { error } = await supabase
+        .from('smarttags')
+        .insert({
+          id: tagId,
+          owner_id: authData.user.id,
+          owner: form.owner.trim(),
+          item: form.item.trim(),
+          category: form.category,
+          description: form.description.trim() || null
+        })
+
+      if (error) {
+        setMessage(
+          error.code === '23505'
+            ? 'This SmartTag is already registered.'
+            : 'Registration failed: ' + error.message
+        )
+        setLoading(false)
+        return
+      }
+
+      if (form.phone.trim()) {
+        const { error: contactError } = await supabase
+          .from('tag_contacts')
+          .insert({
+            tag_id: tagId,
+            phone: form.phone.trim()
+          })
+
+        if (contactError) {
+          setMessage(
+            'Item saved, but private contact details could not be saved. Please contact admin.'
+          )
+          setLoading(false)
+          return
+        }
+      }
+
+      setSuccess(true)
+      setMessage('Registration Successful! Your SmartTag is now active.')
+      setLoading(false)
+
+      window.setTimeout(() => {
+        if (typeof onSuccess === 'function') {
+          onSuccess()
+        } else {
+          window.location.href = 'https://smarttag-phi.vercel.app/'
+        }
+      }, 1500)
+
+    } catch (error) {
+      setMessage('Something went wrong: ' + error.message)
+      setLoading(false)
     }
-
-    setMessage('Registration successful! Your SmartTag is now active.')
-
-    setLoading(false)
   }
 
   return (
@@ -92,8 +109,25 @@ function Register({ tagId }) {
         <p>Tag ID: <strong>{tagId}</strong></p>
 
         {message && (
-          <div className="success-message">
+          <div
+            className="success-message"
+            role="status"
+            style={{
+              padding: '12px',
+              marginBottom: '15px',
+              borderRadius: '8px',
+              backgroundColor: success ? '#dcfce7' : '#fee2e2',
+              color: success ? '#166534' : '#991b1b'
+            }}
+          >
+            {success && '✓ '}
             {message}
+
+            {success && (
+              <p style={{ marginBottom: 0, fontSize: '13px' }}>
+                Redirecting to homepage...
+              </p>
+            )}
           </div>
         )}
 
@@ -107,7 +141,7 @@ function Register({ tagId }) {
             onChange={handleChange}
             placeholder="Enter your full name"
             required
-            disabled={loading}
+            disabled={loading || success}
           />
 
           <label>Item Name *</label>
@@ -118,7 +152,7 @@ function Register({ tagId }) {
             onChange={handleChange}
             placeholder="e.g. School Bag"
             required
-            disabled={loading}
+            disabled={loading || success}
           />
 
           <label>Item Category *</label>
@@ -127,7 +161,7 @@ function Register({ tagId }) {
             value={form.category}
             onChange={handleChange}
             required
-            disabled={loading}
+            disabled={loading || success}
           >
             <option value="">Choose category</option>
             <option value="Electronics">Electronics</option>
@@ -146,7 +180,7 @@ function Register({ tagId }) {
             placeholder="Enter 10-digit mobile number"
             maxLength={10}
             pattern="[0-9]{10}"
-            disabled={loading}
+            disabled={loading || success}
           />
 
           <label>Item Description (Optional)</label>
@@ -156,11 +190,15 @@ function Register({ tagId }) {
             onChange={handleChange}
             placeholder="Describe your item..."
             rows={4}
-            disabled={loading}
+            disabled={loading || success}
           />
 
-          <button type="submit" disabled={loading}>
-            {loading ? 'Registering...' : 'Register My Item →'}
+          <button type="submit" disabled={loading || success}>
+            {loading
+              ? 'Registering...'
+              : success
+                ? 'Registration Complete ✓'
+                : 'Register My Item →'}
           </button>
 
         </form>
