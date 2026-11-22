@@ -329,4 +329,3 @@ function Register({ tagId, onSuccess }) {
 }
 
 export default Register
-s
