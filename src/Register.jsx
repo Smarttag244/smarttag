@@ -1,7 +1,7 @@
 
 import { useState } from 'react'
-import './Register.css'
 import { supabase } from './supabase'
+import './Register.css'
 
 function Register({ tagId, onSuccess }) {
   const [form, setForm] = useState({
@@ -13,203 +13,320 @@ function Register({ tagId, onSuccess }) {
   })
 
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [warning, setWarning] = useState('')
 
   function handleChange(e) {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    })
+    const { name, value } = e.target
+
+    setForm(prev => ({
+      ...prev,
+      [name]: value
+    }))
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
 
+    if (loading || success) return
+
+    setError('')
+    setWarning('')
+
+    const owner = form.owner.trim()
+    const item = form.item.trim()
+    const category = form.category.trim()
+    const phone = form.phone.trim()
+    const description = form.description.trim()
+
+    if (!tagId) {
+      setError('SmartTag QR ID is missing. Please scan your QR again.')
+      return
+    }
+
+    if (!owner || !item || !category) {
+      setError('Please fill in all required fields.')
+      return
+    }
+
+    if (phone && !/^[0-9]{10}$/.test(phone)) {
+      setError('Please enter a valid 10-digit phone number.')
+      return
+    }
+
     setLoading(true)
-    setMessage('')
-    setSuccess(false)
 
     try {
       const { data: authData, error: authError } =
         await supabase.auth.getUser()
 
-      if (authError || !authData.user) {
-        setMessage('Please login to your Owner Account before registering an item.')
-        setLoading(false)
-        return
+      if (authError || !authData?.user) {
+        throw new Error(
+          'Please login to your Owner Account before registering your SmartTag.'
+        )
       }
 
-      const { error } = await supabase
+      const { error: registerError } = await supabase
         .from('smarttags')
         .insert({
           id: tagId,
           owner_id: authData.user.id,
-          owner: form.owner.trim(),
-          item: form.item.trim(),
-          category: form.category,
-          description: form.description.trim() || null
+          owner,
+          item,
+          category,
+          description: description || null
         })
 
-      if (error) {
-        setMessage(
-          error.code === '23505'
-            ? 'This SmartTag is already registered.'
-            : 'Registration failed: ' + error.message
-        )
-        setLoading(false)
-        return
+      if (registerError) {
+        if (registerError.code === '23505') {
+          throw new Error('This SmartTag has already been registered.')
+        }
+
+        throw registerError
       }
 
-      if (form.phone.trim()) {
-        const { error: contactError } = await supabase
+      // Phone number is optional
+      if (phone) {
+        const { error: phoneError } = await supabase
           .from('tag_contacts')
           .insert({
             tag_id: tagId,
-            phone: form.phone.trim()
+            phone
           })
 
-        if (contactError) {
-          setMessage(
-            'Item saved, but private contact details could not be saved. Please contact admin.'
+        if (phoneError) {
+          console.error('Phone save error:', phoneError)
+
+          setWarning(
+            'Your SmartTag is registered, but the contact number could not be saved.'
           )
-          setLoading(false)
-          return
         }
       }
 
       setSuccess(true)
-      setMessage('Registration Successful! Your SmartTag is now active.')
-      setLoading(false)
 
       window.setTimeout(() => {
         if (typeof onSuccess === 'function') {
           onSuccess()
         } else {
-          window.location.href = 'https://smarttag-phi.vercel.app/'
+          window.location.href = '/'
         }
-      }, 1500)
+      }, 1800)
 
-    } catch (error) {
-      setMessage('Something went wrong: ' + error.message)
+    } catch (err) {
+      console.error('Registration error:', err)
+
+      setError(
+        err.message || 'Registration failed. Please try again.'
+      )
+    } finally {
       setLoading(false)
     }
   }
 
   return (
-    <section className="register-section">
-      <div className="register-box">
+    <div className="register-page">
 
-        <div className="register-heading">
-          <span>SMARTTAG REGISTRATION</span>
-          <h2>Register Your <b>Item</b></h2>
-          <p>Give your belongings a unique digital identity.</p>
-        </div>
+      <div className="register-container">
 
-        <p>Tag ID: <strong>{tagId}</strong></p>
-
-        {message && (
-          <div
-            className="success-message"
-            role="status"
-            style={{
-              padding: '12px',
-              marginBottom: '15px',
-              borderRadius: '8px',
-              backgroundColor: success ? '#dcfce7' : '#fee2e2',
-              color: success ? '#166534' : '#991b1b'
+        <div className="register-header">
+          <button
+            type="button"
+            className="register-brand"
+            onClick={() => {
+              if (typeof onSuccess === 'function') {
+                onSuccess()
+              } else {
+                window.location.href = '/'
+              }
             }}
           >
-            {success && '✓ '}
-            {message}
-
-            {success && (
-              <p style={{ marginBottom: 0, fontSize: '13px' }}>
-                Redirecting to homepage...
-              </p>
-            )}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-
-          <label>Owner Name *</label>
-          <input
-            type="text"
-            name="owner"
-            value={form.owner}
-            onChange={handleChange}
-            placeholder="Enter your full name"
-            required
-            disabled={loading || success}
-          />
-
-          <label>Item Name *</label>
-          <input
-            type="text"
-            name="item"
-            value={form.item}
-            onChange={handleChange}
-            placeholder="e.g. School Bag"
-            required
-            disabled={loading || success}
-          />
-
-          <label>Item Category *</label>
-          <select
-            name="category"
-            value={form.category}
-            onChange={handleChange}
-            required
-            disabled={loading || success}
-          >
-            <option value="">Choose category</option>
-            <option value="Electronics">Electronics</option>
-            <option value="School Supplies">School Supplies</option>
-            <option value="Personal Belongings">Personal Belongings</option>
-            <option value="Vehicles">Vehicles</option>
-            <option value="Other">Other</option>
-          </select>
-
-          <label>Mobile Number (Optional)</label>
-          <input
-            type="tel"
-            name="phone"
-            value={form.phone}
-            onChange={handleChange}
-            placeholder="Enter 10-digit mobile number"
-            maxLength={10}
-            pattern="[0-9]{10}"
-            disabled={loading || success}
-          />
-
-          <label>Item Description (Optional)</label>
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            placeholder="Describe your item..."
-            rows={4}
-            disabled={loading || success}
-          />
-
-          <button type="submit" disabled={loading || success}>
-            {loading
-              ? 'Registering...'
-              : success
-                ? 'Registration Complete ✓'
-                : 'Register My Item →'}
+            <span className="register-brand-icon">S</span>
+            SmartTag
           </button>
 
-        </form>
+          <span className="register-header-label">
+            OWNER REGISTRATION
+          </span>
+        </div>
 
-        <small>
-          Your phone number is stored separately and is not shown publicly.
-        </small>
+        <div className="register-box">
+
+          {!success ? (
+            <>
+              <div className="register-heading">
+                <span className="register-label">
+                  GET STARTED
+                </span>
+
+                <h1>Register Your SmartTag</h1>
+
+                <p>
+                  Add your item details to connect it with your
+                  unique SmartTag QR code.
+                </p>
+              </div>
+
+              <div className="register-qr-info">
+                <span className="register-qr-icon">⌗</span>
+
+                <div>
+                  <small>YOUR SMARTTAG ID</small>
+                  <strong>{tagId || 'QR ID unavailable'}</strong>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit}>
+
+                <div className="register-fields">
+
+                  <div className="form-field">
+                    <label htmlFor="owner">Owner Name *</label>
+                    <input
+                      id="owner"
+                      type="text"
+                      name="owner"
+                      placeholder="Enter your name"
+                      value={form.owner}
+                      onChange={handleChange}
+                      maxLength={80}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="item">Item Name *</label>
+                    <input
+                      id="item"
+                      type="text"
+                      name="item"
+                      placeholder="e.g. School Bag"
+                      value={form.item}
+                      onChange={handleChange}
+                      maxLength={100}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="category">Category *</label>
+                    <select
+                      id="category"
+                      name="category"
+                      value={form.category}
+                      onChange={handleChange}
+                      required
+                      disabled={loading}
+                    >
+                      <option value="">Select category</option>
+                      <option value="Electronics">Electronics</option>
+                      <option value="Bags">Bags</option>
+                      <option value="Documents">Documents</option>
+                      <option value="Accessories">Accessories</option>
+                      <option value="Clothing">Clothing</option>
+                      <option value="Keys">Keys</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="phone">
+                      Contact Number <span>(Optional)</span>
+                    </label>
+
+                    <input
+                      id="phone"
+                      type="tel"
+                      name="phone"
+                      placeholder="10-digit mobile number"
+                      value={form.phone}
+                      onChange={handleChange}
+                      maxLength={10}
+                      inputMode="numeric"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="form-field form-field-full">
+                    <label htmlFor="description">
+                      Item Description <span>(Optional)</span>
+                    </label>
+
+                    <textarea
+                      id="description"
+                      name="description"
+                      placeholder="Add identifying details about your item..."
+                      value={form.description}
+                      onChange={handleChange}
+                      maxLength={500}
+                      rows={4}
+                      disabled={loading}
+                    />
+                  </div>
+
+                </div>
+
+                {error && (
+                  <div className="register-error" role="alert">
+                    {error}
+                  </div>
+                )}
+
+                {warning && (
+                  <div className="register-warning" role="status">
+                    {warning}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="register-submit"
+                  disabled={loading || !tagId}
+                >
+                  {loading
+                    ? 'Registering...'
+                    : 'Complete Registration →'}
+                </button>
+
+                <p className="register-privacy">
+                  Your information is used to help identify your
+                  registered item. Avoid adding sensitive personal details.
+                </p>
+
+              </form>
+            </>
+          ) : (
+            <div className="register-success">
+              <div className="register-success-icon">✓</div>
+
+              <h2>Registration Successful!</h2>
+
+              <p>
+                Your SmartTag has been registered successfully.
+                Redirecting you to the homepage...
+              </p>
+
+              {warning && (
+                <div className="register-warning">
+                  {warning}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+
+        <div className="register-footer">
+          © {new Date().getFullYear()} SmartTag. All rights reserved.
+        </div>
 
       </div>
-    </section>
+    </div>
   )
 }
 
 export default Register
+s

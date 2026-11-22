@@ -1,167 +1,250 @@
 
 import { useState } from 'react'
 import { supabase } from './supabase'
+import './TagPage.css'
 
-function TagPage({ tag }) {
-  const [finder, setFinder] = useState({
-    name: '',
-    contact: '',
+function TagPage({ tag, onSuccess }) {
+  const [form, setForm] = useState({
+    finder_name: '',
+    finder_contact: '',
     message: ''
   })
 
-  const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
 
   function handleChange(e) {
-    setFinder({
-      ...finder,
-      [e.target.name]: e.target.value
-    })
+    const { name, value } = e.target
+
+    setForm(prev => ({
+      ...prev,
+      [name]: value
+    }))
   }
 
-  async function sendRequest(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
+
+    if (loading || success) return
+
     setLoading(true)
-    setStatus('')
+    setError('')
 
-    const { error } = await supabase
-      .from('contact_requests')
-      .insert({
-        tag_id: tag.id,
-        finder_name: finder.name.trim(),
-        finder_contact: finder.contact.trim(),
-        message: finder.message.trim() || null
-      })
+    try {
+      const name = form.finder_name.trim()
+      const contact = form.finder_contact.trim()
+      const message = form.message.trim()
 
-    if (error) {
-      setStatus('Error: ' + error.message)
-console.error('Contact request error:', error)
-    } else {
-      setStatus('Contact request sent successfully!')
-      setFinder({
-        name: '',
-        contact: '',
-        message: ''
-      })
+      if (!name || !contact) {
+        setError('Please enter your name and contact details.')
+        return
+      }
+
+      if (!tag?.id) {
+        setError('SmartTag information is missing. Please scan the QR again.')
+        return
+      }
+
+      const { error: requestError } = await supabase
+        .from('contact_requests')
+        .insert({
+          tag_id: tag.id,
+          finder_name: name,
+          finder_contact: contact,
+          message: message || null
+        })
+
+      if (requestError) {
+        throw requestError
+      }
+
+      setSuccess(true)
+
+      window.setTimeout(() => {
+        if (typeof onSuccess === 'function') {
+          onSuccess()
+        } else {
+          window.location.href = '/'
+        }
+      }, 1500)
+
+    } catch (err) {
+      console.error('Finder request error:', err)
+      setError('Your request could not be sent. Please try again.')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    setLoading(false)
+  if (!tag) {
+    return (
+      <div className="finder-page">
+        <div className="finder-box">
+          <h2>SmartTag not found</h2>
+          <p>This QR code does not have a registered item.</p>
+          <button onClick={() => window.location.href = '/'}>
+            Go to Home
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <main style={{
-      minHeight: '100vh',
-      background: '#09090d',
-      color: 'white',
-      padding: '40px 20px',
-      fontFamily: 'Arial, sans-serif'
-    }}>
-      <div style={{
-        maxWidth: '520px',
-        margin: '30px auto',
-        background: '#17171f',
-        padding: '30px',
-        borderRadius: '16px'
-      }}>
-        <h1 style={{ color: '#ff303c' }}>
-          SmartTag
-        </h1>
+    <main className="finder-page">
+      <div className="finder-container">
 
-        <p>Registered Item Found!</p>
+        <header className="finder-header">
+          <div className="finder-brand">
+            <span className="finder-logo">S</span>
+            <span>SmartTag</span>
+          </div>
 
-        <hr />
+          <span className="finder-status">
+            Registered Item
+          </span>
+        </header>
 
-        <h2>{tag.item}</h2>
+        <section className="finder-content">
 
-        <p><b>Owner:</b> {tag.owner}</p>
-        <p><b>Category:</b> {tag.category}</p>
+          <div className="finder-intro">
+            <span className="finder-eyebrow">
+              LOST & FOUND
+            </span>
 
-        {tag.description && (
-          <p><b>Description:</b> {tag.description}</p>
-        )}
+            <h1>Help this item find its owner.</h1>
 
-        <p style={{ color: '#aaa' }}>
-          Tag ID: {tag.id}
-        </p>
+            <p>
+              You have scanned a SmartTag. The details below identify
+              the registered belonging. Send a message to help return it.
+            </p>
+          </div>
 
-        <hr />
+          <div className="finder-item-card">
+            <span className="finder-card-label">ITEM DETAILS</span>
 
-        <h3>Contact Owner</h3>
+            <h2>{tag.item}</h2>
 
-        <p style={{ color: '#aaa' }}>
-          Send a contact request to the owner.
-          Their private phone number will not be displayed.
-        </p>
+            <div className="finder-detail-row">
+              <span>Owner</span>
+              <strong>{tag.owner}</strong>
+            </div>
 
-        {status && (
-          <p style={{ color: '#ff6973' }}>{status}</p>
-        )}
+            <div className="finder-detail-row">
+              <span>Category</span>
+              <strong>{tag.category}</strong>
+            </div>
 
-        <form onSubmit={sendRequest}>
-          <label>Your Name</label>
-          <input
-            name="name"
-            value={finder.name}
-            onChange={handleChange}
-            required
-            placeholder="Enter your name"
-            style={inputStyle}
-          />
+            {tag.description && (
+              <div className="finder-description">
+                <span>Description</span>
+                <p>{tag.description}</p>
+              </div>
+            )}
 
-          <label>Your Contact Details</label>
-          <input
-            name="contact"
-            value={finder.contact}
-            onChange={handleChange}
-            required
-            placeholder="Phone or email"
-            style={inputStyle}
-          />
+            <div className="finder-tag-id">
+              SmartTag ID: {tag.id}
+            </div>
+          </div>
 
-          <label>Message (Optional)</label>
-          <textarea
-            name="message"
-            value={finder.message}
-            onChange={handleChange}
-            placeholder="I found your item..."
-            rows={4}
-            style={inputStyle}
-          />
+          <div className="finder-form-card">
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={buttonStyle}
-          >
-            {loading ? 'Sending...' : 'Contact Owner'}
-          </button>
-        </form>
+            <div className="finder-form-heading">
+              <span>CONTACT THE OWNER</span>
+              <h2>Send a Finder Request</h2>
+              <p>
+                Your contact details will be shared with the item owner
+                through their dashboard.
+              </p>
+            </div>
+
+            {success && (
+              <div className="finder-success" role="status">
+                <strong>✓ Request sent successfully!</strong>
+                <p>Thank you for helping return this item.</p>
+                <small>Returning to homepage...</small>
+              </div>
+            )}
+
+            {error && (
+              <div className="finder-error" role="alert">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit}>
+
+              <label htmlFor="finder_name">Your Name *</label>
+              <input
+                id="finder_name"
+                type="text"
+                name="finder_name"
+                value={form.finder_name}
+                onChange={handleChange}
+                placeholder="Enter your name"
+                maxLength={80}
+                required
+                disabled={loading || success}
+              />
+
+              <label htmlFor="finder_contact">
+                Mobile Number or Email *
+              </label>
+              <input
+                id="finder_contact"
+                type="text"
+                name="finder_contact"
+                value={form.finder_contact}
+                onChange={handleChange}
+                placeholder="How can the owner contact you?"
+                maxLength={120}
+                required
+                disabled={loading || success}
+              />
+
+              <label htmlFor="finder_message">
+                Message (Optional)
+              </label>
+              <textarea
+                id="finder_message"
+                name="message"
+                value={form.message}
+                onChange={handleChange}
+                placeholder="Where did you find this item?"
+                rows={4}
+                maxLength={500}
+                disabled={loading || success}
+              />
+
+              <button
+                type="submit"
+                disabled={loading || success}
+              >
+                {loading
+                  ? 'Sending Request...'
+                  : success
+                    ? 'Request Sent ✓'
+                    : 'Send Finder Request →'}
+              </button>
+
+            </form>
+
+            <p className="finder-privacy">
+              Please share only the contact details needed for the owner
+              to reach you.
+            </p>
+
+          </div>
+        </section>
+
+        <footer className="finder-footer">
+          Smart Identification. Safer Belongings.
+        </footer>
+
       </div>
     </main>
   )
-}
-
-const inputStyle = {
-  display: 'block',
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '12px',
-  margin: '10px 0 18px',
-  borderRadius: '7px',
-  border: '1px solid #444',
-  background: '#252530',
-  color: 'white'
-}
-
-const buttonStyle = {
-  width: '100%',
-  padding: '14px',
-  background: '#ff303c',
-  color: 'white',
-  border: 'none',
-  borderRadius: '7px',
-  cursor: 'pointer',
-  fontWeight: 'bold'
 }
 
 export default TagPage

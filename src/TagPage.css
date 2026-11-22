@@ -1,0 +1,400 @@
+
+/* =====================================
+   SMARTTAG FINDER PAGE
+   Dark Navy + Red Theme
+===================================== */
+
+.tag-page {
+  min-height: 100vh;
+  padding: 45px 20px;
+  background:
+    radial-gradient(ellipse at top left, rgba(255, 65, 80, 0.09), transparent 38%),
+    #080b16;
+  color: #f7f8ff;
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+.tag-container {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* HEADER */
+
+.tag-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 35px;
+}
+
+.tag-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.tag-brand-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #ff4655;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.tag-header-label {
+  color: #8d94a8;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+}
+
+/* MAIN CARD */
+
+.tag-main-card {
+  overflow: hidden;
+  border: 1px solid #252b3b;
+  border-radius: 20px;
+  background: #101626;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.3);
+}
+
+.tag-card-heading {
+  padding: 30px;
+  border-bottom: 1px solid #252b3b;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 70, 85, 0.09),
+    transparent 75%
+  );
+}
+
+.tag-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 70, 85, 0.25);
+  border-radius: 30px;
+  background: rgba(255, 70, 85, 0.09);
+  color: #ff6875;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.tag-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff4655;
+}
+
+.tag-card-heading h1 {
+  margin: 19px 0 8px;
+  color: #fff;
+  font-size: clamp(25px, 5vw, 34px);
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.tag-card-heading p {
+  color: #a0a8ba;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* ITEM INFORMATION */
+
+.tag-item-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+  padding: 25px 30px;
+}
+
+.tag-detail-box {
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid #283044;
+  border-radius: 12px;
+  background: #141d30;
+}
+
+.tag-detail-label {
+  display: block;
+  margin-bottom: 9px;
+  color: #858fa5;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.tag-detail-value {
+  color: #f5f6fb;
+  font-size: 15px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.tag-description {
+  grid-column: 1 / -1;
+}
+
+.tag-description .tag-detail-value {
+  color: #c1c8d6;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+.tag-id {
+  grid-column: 1 / -1;
+}
+
+.tag-id .tag-detail-value {
+  color: #ff6976;
+  font-family: monospace;
+  font-size: 13px;
+}
+
+/* CONTACT FORM */
+
+.tag-contact-section {
+  padding: 30px;
+  border-top: 1px solid #252b3b;
+}
+
+.tag-contact-heading {
+  margin-bottom: 24px;
+}
+
+.tag-contact-heading h2 {
+  margin-bottom: 8px;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.tag-contact-heading p {
+  color: #929caf;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.tag-form {
+  display: grid;
+  gap: 18px;
+}
+
+.tag-form-field {
+  display: grid;
+  gap: 9px;
+}
+
+.tag-form-field label {
+  color: #dce1ec;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tag-form-field input,
+.tag-form-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 15px;
+  border: 1px solid #30394d;
+  border-radius: 10px;
+  outline: none;
+  background: #0b1120;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tag-form-field input::placeholder,
+.tag-form-field textarea::placeholder {
+  color: #69748a;
+}
+
+.tag-form-field input:focus,
+.tag-form-field textarea:focus {
+  border-color: #ff4655;
+  box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.1);
+}
+
+.tag-form-field textarea {
+  min-height: 110px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.tag-submit-button {
+  width: 100%;
+  min-height: 50px;
+  padding: 13px 20px;
+  border: none;
+  border-radius: 10px;
+  background: #ff4655;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.tag-submit-button:hover:not(:disabled) {
+  background: #e93647;
+  transform: translateY(-2px);
+}
+
+.tag-submit-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.tag-privacy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 17px;
+  padding: 13px;
+  border: 1px solid #273248;
+  border-radius: 10px;
+  background: #141d30;
+  color: #929caf;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tag-privacy-icon {
+  color: #ff6875;
+  font-size: 16px;
+}
+
+/* ERROR AND SUCCESS */
+
+.tag-error {
+  padding: 13px 15px;
+  border: 1px solid rgba(255, 70, 85, 0.3);
+  border-radius: 9px;
+  background: rgba(255, 70, 85, 0.08);
+  color: #ff7a85;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tag-success {
+  padding: 45px 30px;
+  text-align: center;
+}
+
+.tag-success-icon {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: rgba(46, 204, 113, 0.12);
+  color: #42d995;
+  font-size: 30px;
+}
+
+.tag-success h2 {
+  margin-bottom: 10px;
+  color: #fff;
+  font-size: 25px;
+}
+
+.tag-success p {
+  color: #9ba5b8;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* NOT FOUND */
+
+.tag-not-found {
+  max-width: 500px;
+  margin: 90px auto;
+  padding: 40px 25px;
+  border: 1px solid #293247;
+  border-radius: 18px;
+  background: #101626;
+  text-align: center;
+}
+
+.tag-not-found h2 {
+  margin-bottom: 12px;
+  color: #ff6875;
+}
+
+.tag-not-found p {
+  color: #a0a8ba;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* FOOTER */
+
+.tag-footer {
+  padding: 25px 10px 5px;
+  color: #707b91;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 600px) {
+  .tag-page {
+    padding: 25px 13px;
+  }
+
+  .tag-header {
+    margin-bottom: 22px;
+  }
+
+  .tag-header-label {
+    font-size: 10px;
+  }
+
+  .tag-card-heading {
+    padding: 23px 20px;
+  }
+
+  .tag-item-details {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .tag-description,
+  .tag-id {
+    grid-column: auto;
+  }
+
+  .tag-contact-section {
+    padding: 23px 20px;
+  }
+
+  .tag-contact-heading h2 {
+    font-size: 20px;
+  }
+
+  .tag-success {
+    padding: 35px 20px;
+  }
+}

@@ -7,10 +7,12 @@ import Admin from './Admin'
 import TagPage from './TagPage'
 import OwnerAuth from './OwnerAuth'
 import OwnerDashboard from './OwnerDashboard'
+import Donation from './Donation'
 import { supabase } from './supabase'
 
 function App() {
   const [user, setUser] = useState(null)
+
   const [tagId, setTagId] = useState(
     new URLSearchParams(window.location.search).get('tag') || ''
   )
@@ -21,9 +23,12 @@ function App() {
 
   const [showDashboard, setShowDashboard] = useState(false)
   const [showOwnerLogin, setShowOwnerLogin] = useState(false)
+  const [showRegister, setShowRegister] = useState(false)
+  const [registerIntent, setRegisterIntent] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [authMode, setAuthMode] = useState('login')
 
-  // SUPABASE AUTHENTICATION
+  // AUTHENTICATION
   useEffect(() => {
     let mounted = true
 
@@ -51,6 +56,8 @@ function App() {
         if (!session?.user) {
           setShowDashboard(false)
           setShowOwnerLogin(false)
+          setShowRegister(false)
+          setRegisterIntent(false)
         }
       }
     })
@@ -65,9 +72,12 @@ function App() {
   useEffect(() => {
     function handlePopState() {
       const params = new URLSearchParams(window.location.search)
+
       setTagId(params.get('tag') || '')
       setShowDashboard(false)
       setShowOwnerLogin(false)
+      setShowRegister(false)
+      setRegisterIntent(false)
       setMenuOpen(false)
     }
 
@@ -78,7 +88,7 @@ function App() {
     }
   }, [])
 
-  // LOAD QR TAG DETAILS
+  // LOAD REGISTERED QR DETAILS
   useEffect(() => {
     let active = true
 
@@ -95,7 +105,7 @@ function App() {
       try {
         const { data, error } = await supabase
           .from('smarttags')
-          .select('*')
+          .select('id, owner, item, category, description')
           .eq('id', tagId)
           .maybeSingle()
 
@@ -105,7 +115,7 @@ function App() {
           setTagData(data || null)
         }
       } catch (error) {
-        console.error('Could not load tag:', error)
+        console.error('Could not load SmartTag:', error)
 
         if (active) {
           setTagData(null)
@@ -124,7 +134,7 @@ function App() {
     }
   }, [tagId])
 
-  // GO TO HOMEPAGE
+  // RETURN TO HOMEPAGE
   function goHome() {
     window.history.pushState({}, '', window.location.pathname)
 
@@ -132,20 +142,84 @@ function App() {
     setTagData(null)
     setShowDashboard(false)
     setShowOwnerLogin(false)
+    setShowRegister(false)
+    setRegisterIntent(false)
     setMenuOpen(false)
+  }
+
+  // START REGISTRATION
+  function startRegistration() {
+    setMenuOpen(false)
+
+    if (!tagId) {
+      alert('Please scan your SmartTag QR code first.')
+      return
+    }
+
+    if (tagData) {
+      alert('This SmartTag is already registered.')
+      return
+    }
+
+    setRegisterIntent(true)
+
+    if (user) {
+      setShowRegister(true)
+      setShowOwnerLogin(false)
+      setShowDashboard(false)
+    } else {
+      setAuthMode('login')
+      setShowOwnerLogin(true)
+      setShowDashboard(false)
+      setShowRegister(false)
+    }
   }
 
   // OPEN OWNER LOGIN
   function openOwnerLogin() {
+    setAuthMode('login')
+    setRegisterIntent(false)
     setShowOwnerLogin(true)
     setShowDashboard(false)
+    setShowRegister(false)
     setMenuOpen(false)
   }
 
-  // AFTER OWNER LOGIN
+  // OPEN OWNER SIGNUP
+  function openOwnerSignup() {
+    setAuthMode('signup')
+    setRegisterIntent(false)
+    setShowOwnerLogin(true)
+    setShowDashboard(false)
+    setShowRegister(false)
+    setMenuOpen(false)
+  }
+
+  // OPEN DASHBOARD
+  function openDashboard() {
+    if (!user) {
+      openOwnerLogin()
+      return
+    }
+
+    setShowDashboard(true)
+    setShowOwnerLogin(false)
+    setShowRegister(false)
+    setRegisterIntent(false)
+    setMenuOpen(false)
+  }
+
+  // AFTER LOGIN
   function handleOwnerLogin() {
     setShowOwnerLogin(false)
-    setShowDashboard(true)
+
+    if (registerIntent && tagId && !tagData) {
+      setShowRegister(true)
+      setShowDashboard(false)
+    } else {
+      setShowDashboard(true)
+      setShowRegister(false)
+    }
   }
 
   // LOGOUT
@@ -157,9 +231,6 @@ function App() {
       return
     }
 
-    setUser(null)
-    setShowDashboard(false)
-    setShowOwnerLogin(false)
     goHome()
   }
 
@@ -172,88 +243,58 @@ function App() {
     )
   }
 
-  // QR TAG ROUTING
-  if (tagId) {
-    if (tagLoading) {
-      return (
-        <div className="app-loading">
-          <h2>SmartTag</h2>
-          <p>Loading tag details...</p>
-        </div>
-      )
-    }
-
-    if (tagData) {
-      return <TagPage tag={tagData} />
-    }
-
-    if (user) {
-      return <Register tagId={tagId} />
-    }
-
+  // CHECK QR
+  if (tagId && tagLoading) {
     return (
-      <OwnerAuth
-        onLogin={() => {
-          setShowOwnerLogin(false)
-        }}
+      <div className="app-loading">
+        <h2>SmartTag</h2>
+        <p>Checking your SmartTag...</p>
+      </div>
+    )
+  }
+
+  // REGISTERED QR: FINDER PAGE
+  if (tagId && tagData) {
+    return (
+      <TagPage
+        tag={tagData}
+        onSuccess={goHome}
       />
     )
   }
 
-  // OWNER LOGIN PAGE
+  // REGISTRATION PAGE
+  if (showRegister && user && tagId && !tagData) {
+    return (
+      <Register
+        tagId={tagId}
+        onSuccess={goHome}
+      />
+    )
+  }
+
+  // OWNER LOGIN / SIGNUP
   if (showOwnerLogin && !user) {
     return (
       <div className="smarttag-app">
-        <div style={{
-          padding: '25px',
-          textAlign: 'center'
-        }}>
-          <button
-            className="secondary-button"
-            onClick={goHome}
-          >
-            ← Back to Home
-          </button>
-        </div>
-
-        <OwnerAuth onLogin={handleOwnerLogin} />
+        <OwnerAuth
+          initialMode={authMode}
+          onLogin={handleOwnerLogin}
+          onBack={() => {
+            setShowOwnerLogin(false)
+            setRegisterIntent(false)
+          }}
+        />
       </div>
     )
   }
 
   // OWNER DASHBOARD
   if (showDashboard && user) {
-    return (
-      <div>
-        <div style={{
-          padding: '15px 25px',
-          background: '#080b16',
-          borderBottom: '1px solid #29324b',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <button
-            className="secondary-button"
-            onClick={goHome}
-          >
-            ← Home
-          </button>
-
-          <button
-            className="primary-button"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-        </div>
-
-        <OwnerDashboard user={user} />
-      </div>
-    )
+    return <OwnerDashboard user={user} />
   }
 
-  // MAIN HOMEPAGE
+  // HOMEPAGE
   return (
     <div className="smarttag-app">
 
@@ -287,6 +328,10 @@ function App() {
               Features
             </a>
 
+            <a href="#donate" onClick={() => setMenuOpen(false)}>
+              Donate
+            </a>
+
             <a href="#admin" onClick={() => setMenuOpen(false)}>
               Admin
             </a>
@@ -294,20 +339,26 @@ function App() {
             {user ? (
               <button
                 className="nav-button"
-                onClick={() => {
-                  setShowDashboard(true)
-                  setMenuOpen(false)
-                }}
+                onClick={openDashboard}
               >
                 My Dashboard
               </button>
             ) : (
-              <button
-                className="nav-button"
-                onClick={openOwnerLogin}
-              >
-                Owner Login
-              </button>
+              <>
+                <button
+                  className="nav-button"
+                  onClick={openOwnerLogin}
+                >
+                  Owner Login
+                </button>
+
+                <button
+                  className="nav-button"
+                  onClick={openOwnerSignup}
+                >
+                  Sign Up
+                </button>
+              </>
             )}
 
           </nav>
@@ -316,75 +367,142 @@ function App() {
 
       <main>
 
-        <section className="hero" id="home">
+        {/* PREMIUM HERO SECTION */}
+        <section className="hero premium-hero" id="home">
 
-          <div className="hero-content">
+          <div className="hero-content premium-hero-content">
 
             <div className="hero-badge">
-              Smart Identification. Safer Belongings.
+              <span className="hero-badge-dot"></span>
+              SMART IDENTIFICATION. SAFER BELONGINGS.
             </div>
 
             <h1>
               Lost Something?
               <br />
-              <span>Get It Back.</span>
+              <span>Bring It Back.</span>
             </h1>
 
-            <p>
-              SmartTag helps people reconnect lost belongings
-              with their owners through simple, unique QR codes.
+            <p className="premium-hero-description">
+              A smarter way to protect the things that matter.
+              SmartTag connects lost belongings with their owners
+              through unique QR codes and simple contact requests.
             </p>
 
-            <div className="hero-actions">
-              <a href="#how-it-works" className="primary-button">
-                Explore How It Works →
-              </a>
+            <div className="hero-actions premium-hero-actions">
 
-              <a href="#features" className="secondary-button">
-                Discover Features
-              </a>
+              <button
+                className="primary-button"
+                onClick={startRegistration}
+              >
+                Register Your SmartTag
+                <span className="hero-button-arrow">→</span>
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={openOwnerLogin}
+              >
+                Owner Login
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={openOwnerSignup}
+              >
+                Sign Up
+              </button>
+
             </div>
 
-            <div className="hero-note">
-              <span>✓</span> Unique QR Identity
-              <span>✓</span> Quick Scanning
-              <span>✓</span> Easy Recovery
+            <div className="hero-trust-row">
+
+              <div className="hero-trust-item">
+                <span className="trust-check">✓</span>
+                <span>Unique QR Identity</span>
+              </div>
+
+              <div className="hero-trust-item">
+                <span className="trust-check">✓</span>
+                <span>Easy Registration</span>
+              </div>
+
+              <div className="hero-trust-item">
+                <span className="trust-check">✓</span>
+                <span>Simple Recovery</span>
+              </div>
+
             </div>
 
           </div>
 
-          <div className="hero-visual">
+          <div className="hero-visual premium-hero-visual">
 
-            <div className="tag-card">
+            <div className="hero-glow"></div>
+
+            <div className="tag-card premium-tag-card">
 
               <div className="tag-top">
-                <span className="tag-logo">S</span>
-                <span>SMARTTAG</span>
-              </div>
-
-              <div className="qr-placeholder">
-                <div className="qr-pattern">
-                  <span>▦</span>
+                <div className="tag-brand-group">
+                  <span className="tag-logo">S</span>
+                  <span>SMARTTAG</span>
                 </div>
+
+                <span className="tag-status">
+                  <span></span>
+                  ACTIVE
+                </span>
               </div>
 
-              <h3>Scan to identify</h3>
-              <p>Help this item find its owner.</p>
+              <div className="tag-card-divider"></div>
+
+              <div className="tag-card-main">
+
+                <div className="tag-card-label">
+                  YOUR BELONGINGS, CONNECTED
+                </div>
+
+                <div className="qr-placeholder premium-qr-placeholder">
+                  <div className="qr-pattern">
+                    <span>▦</span>
+                  </div>
+                </div>
+
+                <h3>Scan to identify</h3>
+
+                <p>
+                  One scan can help a finder reconnect
+                  this item with its owner.
+                </p>
+
+              </div>
 
               <div className="tag-bottom">
-                SMARTER LOST & FOUND
+                <span>SMARTER LOST & FOUND</span>
+                <span className="tag-card-mark">ST.</span>
               </div>
 
             </div>
 
-            <div className="floating-label">
-              <span>✓</span> Smart QR Technology
+            <div className="floating-label premium-floating-label">
+              <span className="floating-label-icon">✓</span>
+              <span>
+                <strong>Smart QR Technology</strong>
+                <small>Simple. Connected. Convenient.</small>
+              </span>
+            </div>
+
+            <div className="hero-side-note">
+              <span className="hero-side-line"></span>
+              <span>IDENTIFY · CONNECT · RECOVER</span>
             </div>
 
           </div>
+
         </section>
 
-        <section className="stats-section">
+        {/* QUICK BENEFITS */}
+        <section className="stats-section premium-stats-section">
 
           <div className="stat-item">
             <h2>01</h2>
@@ -433,7 +551,7 @@ function App() {
               <div className="step-number">03</div>
               <h3>Reconnect</h3>
               <p>
-                A finder can scan the tag and view available details.
+                A finder can scan the tag and send a contact request.
               </p>
             </article>
 
@@ -480,17 +598,21 @@ function App() {
         <section className="cta-section">
           <h2>Make Your Belongings Smarter.</h2>
           <p>
-            Choose SmartTag for a simpler lost-and-found experience.
+            Have a SmartTag? Register it to help protect your belongings.
           </p>
 
           <button
             className="primary-button"
-            onClick={openOwnerLogin}
+            onClick={startRegistration}
           >
-            Owner Login →
+            Register Your SmartTag →
           </button>
         </section>
 
+        {/* DONATION SECTION */}
+        <Donation />
+
+        {/* ADMIN SECTION */}
         <section className="admin-section" id="admin">
           <Admin />
         </section>
