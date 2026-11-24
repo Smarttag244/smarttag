@@ -82,6 +82,7 @@ function Admin() {
     }
   }
 
+  // Generate SmartTag QR Codes
   async function generateQRs() {
     const total = Number(count)
 
@@ -99,15 +100,22 @@ function Admin() {
       const newCodes = []
 
       for (let i = 0; i < total; i++) {
+        // Generate a unique SmartTag ID
+        const id = `ST-${crypto.randomUUID()}`
+
         const { data, error } = await supabase
           .from('qr_codes')
-          .insert({ is_registered: false })
+          .insert({
+            id: id,
+            is_registered: false
+          })
           .select()
           .single()
 
         if (error) throw error
 
         const url = `${window.location.origin}/?tag=${data.id}`
+
         const qr = await QRCode.toDataURL(url, {
           width: 300,
           margin: 2
@@ -128,6 +136,7 @@ function Admin() {
     }
   }
 
+  // Download QR Codes as PDF
   function downloadPDF() {
     if (!qrCodes.length) return
 
@@ -141,8 +150,6 @@ function Admin() {
     const qrSize = 42
 
     qrCodes.forEach((item, index) => {
-      const pageIndex = Math.floor(index / 9)
-
       if (index > 0 && index % 9 === 0) {
         pdf.addPage()
       }
@@ -165,7 +172,7 @@ function Admin() {
 
       pdf.setFontSize(8)
       pdf.text(
-        `SMARTTAG`,
+        'SMARTTAG',
         x + cellWidth / 2,
         y + 47,
         { align: 'center' }
@@ -183,6 +190,7 @@ function Admin() {
     pdf.save('SmartTag-QR-Codes.pdf')
   }
 
+  // Load Donation Wallet
   async function loadWallet() {
     if (!user) return
 
@@ -243,6 +251,7 @@ function Admin() {
     }
   }, [user, activeTab])
 
+  // Request Wallet Withdrawal
   async function requestWithdrawal(e) {
     e.preventDefault()
 
@@ -286,6 +295,7 @@ function Admin() {
     }
   }
 
+  // Admin Logout
   async function adminLogout() {
     await supabase.auth.signOut()
 
@@ -301,6 +311,7 @@ function Admin() {
     setMessage('')
   }
 
+  // Admin Login Screen
   if (!user) {
     return (
       <section className="admin-panel">
@@ -336,6 +347,7 @@ function Admin() {
     )
   }
 
+  // Admin Dashboard
   return (
     <section className="admin-panel">
       <div className="admin-dashboard">
@@ -351,6 +363,7 @@ function Admin() {
           </button>
         </div>
 
+        {/* Admin Tabs */}
         <div className="admin-tabs">
           <button
             className={activeTab === 'qr' ? 'active' : ''}
@@ -378,6 +391,7 @@ function Admin() {
         {error && <p className="admin-error">{error}</p>}
         {message && <p className="admin-success">{message}</p>}
 
+        {/* QR Management */}
         {activeTab === 'qr' && (
           <div className="admin-qr-section">
             <h3>Generate SmartTag QR Codes</h3>
@@ -418,6 +432,7 @@ function Admin() {
           </div>
         )}
 
+        {/* Donation Wallet */}
         {activeTab === 'wallet' && (
           <div className="admin-wallet-section">
             <div className="wallet-heading">
@@ -437,7 +452,9 @@ function Admin() {
             <div className="wallet-balance-card">
               <p>Available Balance</p>
               <h2>₹{balance.toFixed(2)}</h2>
-              <small>Based on recorded successful donations and reserved requests</small>
+              <small>
+                Based on recorded successful donations and reserved requests
+              </small>
             </div>
 
             <div className="wallet-stats">
@@ -452,6 +469,7 @@ function Admin() {
               </div>
             </div>
 
+            {/* Withdrawal Form */}
             <form
               className="wallet-withdraw-form"
               onSubmit={requestWithdrawal}
@@ -485,6 +503,7 @@ function Admin() {
               </p>
             </form>
 
+            {/* Donation Transactions */}
             <div className="wallet-history">
               <h4>Donation Transactions</h4>
 
@@ -509,6 +528,7 @@ function Admin() {
               )}
             </div>
 
+            {/* Withdrawal Requests */}
             <div className="wallet-history">
               <h4>Withdrawal Requests</h4>
 
