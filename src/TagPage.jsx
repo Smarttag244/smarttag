@@ -10,6 +10,11 @@ function TagPage({ tag, onSuccess }) {
     message: ''
   })
 
+  const [location, setLocation] = useState(null)
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [locationMessage, setLocationMessage] = useState('')
+  const [locationError, setLocationError] = useState('')
+
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -21,6 +26,68 @@ function TagPage({ tag, onSuccess }) {
       ...prev,
       [name]: value
     }))
+  }
+
+  function getCurrentLocation() {
+    if (!navigator.geolocation) {
+      setLocationError(
+        'Location is not supported by this browser.'
+      )
+      return
+    }
+
+    if (locationLoading || loading || success) return
+
+    setLocationLoading(true)
+    setLocationError('')
+    setLocationMessage('Requesting your location...')
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const coords = position.coords
+
+        setLocation({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracy: coords.accuracy,
+          captured_at: new Date().toISOString()
+        })
+
+        setLocationMessage('Your location is ready to share.')
+        setLocationError('')
+        setLocationLoading(false)
+      },
+      err => {
+        let message = 'Unable to get your location.'
+
+        if (err.code === 1) {
+          message =
+            'Location permission was denied. You can still send your report without GPS.'
+        } else if (err.code === 2) {
+          message =
+            'Your location is currently unavailable. Please try again.'
+        } else if (err.code === 3) {
+          message =
+            'Location request timed out. Please try again.'
+        }
+
+        setLocation(null)
+        setLocationMessage('')
+        setLocationError(message)
+        setLocationLoading(false)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    )
+  }
+
+  function removeLocation() {
+    setLocation(null)
+    setLocationMessage('')
+    setLocationError('')
   }
 
   async function handleSubmit(e) {
@@ -37,23 +104,32 @@ function TagPage({ tag, onSuccess }) {
       const message = form.message.trim()
 
       if (!name || !contact) {
-        setError('Please enter your name and contact details.')
-        return
+        throw new Error(
+          'Please enter your name and contact details.'
+        )
       }
 
       if (!tag?.id) {
-        setError('SmartTag information is missing. Please scan the QR again.')
-        return
+        throw new Error(
+          'SmartTag information is missing. Please scan the QR again.'
+        )
+      }
+
+      const requestData = {
+        tag_id: tag.id,
+        finder_name: name,
+        finder_contact: contact,
+        message: message || null,
+
+        finder_latitude: location?.latitude ?? null,
+        finder_longitude: location?.longitude ?? null,
+        finder_location_accuracy: location?.accuracy ?? null,
+        finder_location_captured_at: location?.captured_at ?? null
       }
 
       const { error: requestError } = await supabase
         .from('contact_requests')
-        .insert({
-          tag_id: tag.id,
-          finder_name: name,
-          finder_contact: contact,
-          message: message || null
-        })
+        .insert(requestData)
 
       if (requestError) {
         throw requestError
@@ -67,11 +143,15 @@ function TagPage({ tag, onSuccess }) {
         } else {
           window.location.href = '/'
         }
-      }, 1500)
+      }, 2000)
 
     } catch (err) {
       console.error('Finder request error:', err)
-      setError('Your request could not be sent. Please try again.')
+
+      setError(
+        err.message ||
+        'Your request could not be sent. Please try again.'
+      )
     } finally {
       setLoading(false)
     }
@@ -175,7 +255,10 @@ function TagPage({ tag, onSuccess }) {
 
             <form onSubmit={handleSubmit}>
 
-              <label htmlFor="finder_name">Your Name *</label>
+              <label htmlFor="finder_name">
+                Your Name *
+              </label>
+
               <input
                 id="finder_name"
                 type="text"
@@ -191,6 +274,7 @@ function TagPage({ tag, onSuccess }) {
               <label htmlFor="finder_contact">
                 Mobile Number or Email *
               </label>
+
               <input
                 id="finder_contact"
                 type="text"
@@ -206,6 +290,7 @@ function TagPage({ tag, onSuccess }) {
               <label htmlFor="finder_message">
                 Message (Optional)
               </label>
+
               <textarea
                 id="finder_message"
                 name="message"
@@ -216,6 +301,72 @@ function TagPage({ tag, onSuccess }) {
                 maxLength={500}
                 disabled={loading || success}
               />
+
+              {/* OPTIONAL FINDER GPS LOCATION */}
+
+              <div className="finder-location-box">
+
+                <div className="finder-location-heading">
+                  <strong>Share Your Current Location</strong>
+                  <span>Optional</span>
+                </div>
+
+                <p>
+                  You can share your current phone location
+                  to help the owner find their belonging.
+                  Your location is shared only when you submit this report.
+                </p>
+
+                {!location ? (
+                  <button
+                    type="button"
+                    className="finder-location-button"
+                    onClick={getCurrentLocation}
+                    disabled={
+                      locationLoading ||
+                      loading ||
+                      success
+                    }
+                  >
+                    {locationLoading
+                      ? 'Getting Location...'
+                      : '📍 Get My Current Location'}
+                  </button>
+                ) : (
+                  <div className="finder-location-ready">
+                    <strong>✓ Location captured</strong>
+
+                    <span>
+                      Accuracy: approximately{' '}
+                      {Math.round(location.accuracy)} metres
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={removeLocation}
+                      disabled={loading || success}
+                    >
+                      Remove Location
+                    </button>
+                  </div>
+                )}
+
+                {locationMessage && (
+                  <small className="finder-location-message">
+                    {locationMessage}
+                  </small>
+                )}
+
+                {locationError && (
+                  <small
+                    className="finder-location-error"
+                    role="alert"
+                  >
+                    {locationError}
+                  </small>
+                )}
+
+              </div>
 
               <button
                 type="submit"
@@ -232,7 +383,7 @@ function TagPage({ tag, onSuccess }) {
 
             <p className="finder-privacy">
               Please share only the contact details needed for the owner
-              to reach you.
+              to reach you. Sharing GPS location is optional.
             </p>
 
           </div>

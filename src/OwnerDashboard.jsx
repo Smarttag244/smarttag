@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabase'
 import './OwnerDashboard.css'
@@ -89,7 +88,7 @@ function OwnerDashboard({ user }) {
 
           const { data: requestData, error: requestError } = await supabase
             .from('contact_requests')
-            .select('id, tag_id, finder_name, finder_contact, message, created_at')
+            .select('id, tag_id, finder_name, finder_contact, message, finder_latitude, finder_longitude, finder_location_accuracy, finder_location_captured_at, created_at')
             .in('tag_id', tagIds)
             .order('created_at', { ascending: false })
 
@@ -298,7 +297,7 @@ function OwnerDashboard({ user }) {
       window.setTimeout(() => {
         setCopiedTagDetails(false)
       }, 2500)
-    } catch (err) {
+          } catch (err) {
       console.error('Copy details error:', err)
       alert('Could not copy item details. Please try again.')
     }
@@ -714,8 +713,7 @@ function OwnerDashboard({ user }) {
                 </div>
               )}
             </section>
-
-            <section className="dashboard-section" id="my-tags">
+                        <section className="dashboard-section" id="my-tags">
               <div className="section-heading">
                 <div>
                   <h2>My SmartTags</h2>
@@ -878,6 +876,48 @@ function OwnerDashboard({ user }) {
                         <p>{request.message || 'No additional message provided.'}</p>
                       </div>
 
+                      <div className="request-location">
+                        <span>FINDER LOCATION</span>
+                        {request.finder_latitude != null &&
+                        request.finder_longitude != null ? (
+                          <div>
+                            <p>
+                              {request.finder_location_accuracy != null
+                                ? `GPS accuracy: approximately ${Math.round(request.finder_location_accuracy)} metres`
+                                : 'GPS location shared by finder'}
+                            </p>
+                            <a
+                              href={`https://www.google.com/maps?q=${encodeURIComponent(request.finder_latitude)},${encodeURIComponent(request.finder_longitude)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '7px',
+                                marginTop: '8px',
+                                padding: '9px 13px',
+                                borderRadius: '8px',
+                                background: 'rgba(255, 70, 85, 0.12)',
+                                border: '1px solid rgba(255, 70, 85, 0.35)',
+                                color: '#ff7883',
+                                textDecoration: 'none',
+                                fontSize: '13px',
+                                fontWeight: 700
+                              }}
+                            >
+                              📍 Open Finder Location in Maps
+                            </a>
+                            {request.finder_location_captured_at && (
+                              <p style={{ marginTop: '8px' }}>
+                                Location captured: {formatDate(request.finder_location_captured_at)}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p>No GPS location shared by finder.</p>
+                        )}
+                      </div>
+
                       <div className="request-date">
                         Received: {formatDate(request.created_at)}
                       </div>
@@ -886,8 +926,7 @@ function OwnerDashboard({ user }) {
                 </div>
               )}
             </section>
-
-            <section className="dashboard-section help-support-section" id="help-support">
+                        <section className="dashboard-section help-support-section" id="help-support">
               <div className="section-heading">
                 <div>
                   <div className="dashboard-eyebrow">WE ARE HERE TO HELP</div>
